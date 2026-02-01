@@ -2,8 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NodeType, NodeStatus, EdgeIntensity } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
+// Schema definition for structured investigation data extraction following Google GenAI guidelines
 const investigationSchema = {
   type: Type.OBJECT,
   properties: {
@@ -36,12 +35,16 @@ const investigationSchema = {
         required: ["sourceTitle", "targetTitle", "label", "intensity"]
       }
     }
-  }
+  },
+  required: ["nodes", "edges"]
 };
 
+// Extracts investigative entities and connections using gemini-3-flash-preview
 export const processInvestigativeText = async (text: string) => {
+  // Use process.env.API_KEY exclusively as per requirements
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: 'gemini-3-flash-preview',
     contents: `Extraia entidades investigativas e conexões do seguinte texto: "${text}". 
     Crie nós para pessoas, locais, eventos, pistas, provas e hipóteses. 
     Estabeleça conexões (edges) entre eles baseando-se na narrativa.
@@ -53,17 +56,21 @@ export const processInvestigativeText = async (text: string) => {
     }
   });
 
-  return JSON.parse(response.text);
+  // Access text property directly (not a method)
+  return JSON.parse(response.text || '{"nodes": [], "edges": []}');
 };
 
+// Suggests hidden patterns and connections using gemini-3-pro-preview for advanced reasoning
 export const suggestPatterns = async (caseData: any) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: 'gemini-3-pro-preview',
     contents: `Analise estes dados de investigação e sugira conexões ocultas, pistas não exploradas, contradições ou padrões suspeitos: ${JSON.stringify(caseData)}`,
     config: {
         systemInstruction: "Você é um analista forense sênior. Procure por lacunas na linha do tempo, depoimentos conflitantes e elos de prova perdidos. Responda em Português."
     }
   });
 
+  // Access text property directly
   return response.text;
 };

@@ -67,8 +67,15 @@ const App: React.FC = () => {
   const [isExportExpanded, setIsExportExpanded] = useState(false);
 
   const [cases, setCases] = useState<Case[]>(() => {
-    const saved = localStorage.getItem('truedetective_projects');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('truedetective_projects');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error("Failed to load cases from localStorage:", e);
+      return [];
+    }
   });
   
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
