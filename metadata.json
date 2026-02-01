@@ -1,0 +1,7 @@
+{
+  "name": "True Detective",
+  "description": "An investigative mental mapping tool designed for organizing complex cases with nodes, connections, timelines, and AI-assisted pattern detection.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

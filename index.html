@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>True Detective - Investigação Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #1a1b1e;
+            --bg-surface: #25262b;
+            --text-main: #e8e9ed;
+            --text-muted: #a1a1aa;
+        }
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Transições suaves globais */
+        * {
+            transition: background-color 0.2s ease-out, border-color 0.2s ease-out, transform 0.2s ease-out;
+        }
+        /* Scrollbars elegantes e discretas */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+        .no-print { display: block; }
+        .print-only { display: none; }
+
+        /* Estilos para PDF / Impressão */
+        @media print {
+            @page { size: auto; margin: 1cm; }
+            body { 
+                background: white !important; 
+                color: black !important;
+                overflow: visible !important;
+            }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            main { background: white !important; width: 100% !important; }
+            .absolute { position: relative !important; transform: none !important; border: 1px solid #ccc !important; }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.39.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
