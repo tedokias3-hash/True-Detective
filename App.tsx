@@ -4,17 +4,18 @@ import {
   Plus, Search, Layers, History as TimelineIcon, 
   Upload, Settings, BrainCircuit, 
   Trash2, X, Maximize2, Minimize2, ChevronRight,
-  ChevronLeft, Ghost, FolderOpen, Save, HelpCircle,
+  ChevronLeft, FolderOpen, Save,
   Link as LinkIcon, Zap, Camera,
   PlusCircle, MinusCircle, UserRound, FileText, MapPin,
   Home, Edit3, FileDown, Palette, Clock, Check, MoreHorizontal,
   Eye, EyeOff, Hash, ChevronDown, ChevronUp, Share2, MousePointer2, Fingerprint,
   Lightbulb, RefreshCcw, Shield, Activity, Archive, Briefcase, Car, Database, 
-  Globe, HardDrive, Lock, Mail, Phone, Smartphone, Truck, Info
+  Globe, HardDrive, Lock, Mail, Phone, Smartphone, Truck, Info, Sparkles, Loader2
 } from 'lucide-react';
 import { NodeType, NodeStatus, EdgeIntensity, InvestigationNode, InvestigationEdge, Case, CustomField, CustomCategory } from './types';
 import { NodeCard, IconMap } from './components/NodeCard';
-import { processInvestigativeText } from './services/geminiService';
+import { processInvestigativeText, extractNodeData } from './services/geminiService';
+import { NODE_COLORS, STATUS_COLORS } from './constants';
 
 const RIBBON_COLORS = [
   { name: 'Crime', color: 'bg-rose-500' },
@@ -67,15 +68,8 @@ const App: React.FC = () => {
   const [isExportExpanded, setIsExportExpanded] = useState(false);
 
   const [cases, setCases] = useState<Case[]>(() => {
-    try {
-      const saved = localStorage.getItem('truedetective_projects');
-      if (!saved) return [];
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      console.error("Failed to load cases from localStorage:", e);
-      return [];
-    }
+    const saved = localStorage.getItem('truedetective_projects');
+    return saved ? JSON.parse(saved) : [];
   });
   
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
@@ -86,6 +80,11 @@ const App: React.FC = () => {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiInput, setAiInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // States para Auto-Fill de nó individual
+  const [isAutoFillOpen, setIsAutoFillOpen] = useState(false);
+  const [autoFillInput, setAutoFillInput] = useState('');
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
 
   // Custom Category State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -329,6 +328,37 @@ const App: React.FC = () => {
     }
   };
 
+  // Preenchimento Automático por IA (Nó Individual)
+  const handleNodeAutoFill = async () => {
+    if (!selectedNodeId || !autoFillInput.trim()) return;
+    const node = activeCase?.nodes.find(n => n.id === selectedNodeId);
+    if (!node) return;
+
+    setIsAutoFilling(true);
+    try {
+      const extracted = await extractNodeData(autoFillInput, node.type);
+      
+      // Mesclar dados extraídos com os existentes
+      updateNode(selectedNodeId, {
+        title: extracted.title || node.title,
+        description: extracted.description || node.description,
+        date: extracted.date || node.date,
+        status: extracted.status || node.status,
+        personFields: extracted.personFields ? { ...node.personFields, ...extracted.personFields } : node.personFields,
+        locationFields: extracted.locationFields ? { ...node.locationFields, ...extracted.locationFields } : node.locationFields,
+        customFields: [...(node.customFields || []), ...(extracted.customFields || [])].filter((v, i, a) => a.findIndex(t => t.label === v.label) === i)
+      });
+      
+      setIsAutoFillOpen(false);
+      setAutoFillInput('');
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao processar preenchimento automático. Tente novamente.');
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
+
   // Custom Category Creation
   const createCustomCategory = () => {
     if (!newCatName.trim()) return;
@@ -448,6 +478,7 @@ const App: React.FC = () => {
     } else {
       setSelectedNodeId(nodeId);
       setSelectedEdgeId(null);
+      setIsAutoFillOpen(false); // Resetar auto-fill ao mudar de nó
     }
   };
 
@@ -736,6 +767,55 @@ const App: React.FC = () => {
                    <button onClick={() => setSelectedNodeId(null)} className="p-2.5 hover:bg-zinc-800 rounded-full text-zinc-500 hover:text-zinc-100 transition-all"><X size={22} /></button>
                 </div>
                 <div className="p-10 flex flex-col gap-10 overflow-y-auto custom-scrollbar">
+                  
+                  {/* Bloco de Preenchimento IA - Individual */}
+                  <div className="bg-zinc-950/40 p-6 rounded-[32px] border border-zinc-800/60 shadow-inner group">
+                    {!isAutoFillOpen ? (
+                      <button 
+                        onClick={() => setIsAutoFillOpen(true)}
+                        className="w-full flex items-center justify-between text-zinc-500 group-hover:text-zinc-100 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-amber-400/10 text-amber-400 rounded-xl"><Sparkles size={20} /></div>
+                          <div className="text-left">
+                            <span className="text-[10px] font-black uppercase tracking-widest block">Preenchimento IA</span>
+                            <span className="text-[8px] text-zinc-600 font-bold uppercase">Cole informações brutas aqui</span>
+                          </div>
+                        </div>
+                        <ChevronDown size={18} />
+                      </button>
+                    ) : (
+                      <div className="space-y-5 animate-in fade-in slide-in-from-top-4 duration-300">
+                        <div className="flex items-center justify-between bg-zinc-900/60 p-3 rounded-2xl border border-zinc-800/40">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 px-2">Dados da Investigação</span>
+                          <button 
+                            onClick={() => setIsAutoFillOpen(false)} 
+                            className="p-1.5 hover:bg-zinc-800 rounded-full text-zinc-600 hover:text-zinc-300 transition-colors"
+                          >
+                            <X size={16}/>
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          <textarea 
+                            value={autoFillInput}
+                            onChange={(e) => setAutoFillInput(e.target.value)}
+                            className="w-full min-h-[160px] bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-xs font-medium text-zinc-200 focus:border-amber-400/50 outline-none transition-all resize-none shadow-inner placeholder:text-zinc-700 leading-relaxed"
+                            placeholder="Cole aqui: Nome, CPF, endereço, observações, datas relevantes, depoimentos..."
+                          />
+                          <p className="text-[8px] text-zinc-600 font-bold uppercase tracking-widest px-2 text-center">A IA irá distribuir os dados automaticamente nos campos abaixo.</p>
+                        </div>
+                        <button 
+                          onClick={handleNodeAutoFill}
+                          disabled={isAutoFilling || !autoFillInput.trim()}
+                          className="w-full py-4 bg-amber-400 hover:bg-amber-300 text-zinc-950 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 disabled:opacity-50 disabled:bg-zinc-800 disabled:text-zinc-600 transition-all shadow-xl active:scale-95"
+                        >
+                          {isAutoFilling ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} />}
+                          Distribuir Informações
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-4">
                     <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Evidência Visual</label>
                     <div className="flex flex-col gap-5">
